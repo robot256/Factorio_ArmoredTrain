@@ -1,6 +1,13 @@
 
 require("script.insertAmmunition")
 
+-- Constants mapping entities together.  Could be stored in dummy recipes.
+local cannonMap = {}
+cannonMap["cannon-shell"] = "platform-turret-cannon-ammo"
+cannonMap["uranium-cannon-shell"] = "platform-turret-cannon-uranium-ammo"
+
+
+
 --------------------------
 --FUNCTIONS---------------
 --------------------------
@@ -154,9 +161,6 @@ function onTickMain(event)  -- Move each turret to follow its wagon
 				
 				elseif createdPlatform.entity.name == "armored-wagon-cannon-mk1" then
 					local neededAmmo = 2;
-					local cannonMap = {}
-					cannonMap["cannon-shell"] = "platform-turret-cannon-ammo"
-					cannonMap["uranium-cannon-shell"] = "platform-turret-cannon-uranium-ammo"
 					insertAmmunitionMap(turretProxyInventory, wagonInventory, neededAmmo, cannonMap)
 					
 				elseif createdPlatform.entity.name == "armored-platform-rocket-mk1" then
