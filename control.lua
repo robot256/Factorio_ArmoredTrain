@@ -1,3 +1,13 @@
+
+require("script.insertAmmunition")
+
+-- Constants mapping entities together.  Could be stored in dummy recipes.
+local cannonMap = {}
+cannonMap["cannon-shell"] = "platform-turret-cannon-ammo"
+cannonMap["uranium-cannon-shell"] = "platform-turret-cannon-uranium-ammo"
+
+
+
 --------------------------
 --FUNCTIONS---------------
 --------------------------
@@ -62,10 +72,6 @@ function(event)
 
 	platformMaxHealth = 1000
 	
-
-
-
-	
 end)
 --ON LOAD /\
 
@@ -73,7 +79,7 @@ end)
 --ON BUILT \/--
 function entityBuilt(event)
 	--createdEntity reference (to simplify usage in this context)
-	local createdEntity = event.created_entity
+	local createdEntity = event.created_entity or event.entity
 	
 	--Is this mod entity?
 	if isModEntity(createdEntity) then
@@ -121,6 +127,7 @@ end
 --ON_BUILT EVENT
 script.on_event(defines.events.on_built_entity, entityBuilt)
 script.on_event(defines.events.on_robot_built_entity, entityBuilt)
+script.on_event(defines.events.script_raised_built, entityBuilt)
 --ON BUILT /\--
 
 
@@ -137,184 +144,30 @@ function onTickMain(event)  -- Move each turret to follow its wagon
 			--Is this entity valid/nil?
 			if createdPlatform.proxy ~= nil and createdPlatform.proxy.valid then	--or if isEntityValid(createdPlatform.proxy) then
 			
-			
-			
-			
 				--teleport i turret to i platform (good)
 				createdPlatform.proxy.teleport({
 						x = createdPlatform.entity.position.x,			
 						y = createdPlatform.entity.position.y -- 0.25
 					})
 					
-				
-				
-				
-						if createdPlatform.entity.name == "armored-platform-minigun-mk1" then
-					
-						
-							--GET TURRET INVENTORY
-							local turretProxyInventory = createdPlatform.proxy.get_inventory(defines.inventory.turret_ammo)
-							--GET WAGON INVENTORY
-							local wagonInventory = createdPlatform.entity.get_inventory(defines.inventory.cargo_wagon)
-
-								
-				
-									
-									
-							local neededAmmo = 10;
-							
-							if (turretProxyInventory.can_insert("firearm-magazine")) then
-								--If turret inventory == 0 (to prevent difficult unnecessary calculations
-								if (turretProxyInventory.get_item_count("firearm-magazine") == 0) then
-								--if we have in wagon
-									if (wagonInventory.get_item_count("firearm-magazine") > 0) then
-										--If less thatn 10 calculate remaining
-										if (wagonInventory.get_item_count("firearm-magazine") < 10) then
-												turretProxyInventory.insert{name = "firearm-magazine", count = wagonInventory.get_item_count("firearm-magazine")}
-												wagonInventory.remove{name="firearm-magazine", count = wagonInventory.get_item_count("firearm-magazine")}
-										end	
-										--if greater thant 10 insert stack
-										if (wagonInventory.get_item_count("firearm-magazine") >= 10) then
-											turretProxyInventory.insert{name = "firearm-magazine", count = neededAmmo}
-											wagonInventory.remove{name="firearm-magazine", count = neededAmmo}
-										end
-									end
-								end
-							end
-							
-							if (turretProxyInventory.can_insert("piercing-rounds-magazine")) then
-								if (turretProxyInventory.get_item_count("piercing-rounds-magazine") == 0) then
-									if (wagonInventory.get_item_count("piercing-rounds-magazine") > 0) then
-									
-										if (wagonInventory.get_item_count("piercing-rounds-magazine") < 10) then
-												turretProxyInventory.insert{name = "piercing-rounds-magazine", count = wagonInventory.get_item_count("piercing-rounds-magazine")}
-												wagonInventory.remove{name="piercing-rounds-magazine", count = wagonInventory.get_item_count("piercing-rounds-magazine")}
-										end	
-										
-										if (wagonInventory.get_item_count("piercing-rounds-magazine") >= 10) then
-											turretProxyInventory.insert{name = "piercing-rounds-magazine", count = neededAmmo}
-											wagonInventory.remove{name="piercing-rounds-magazine", count = neededAmmo}
-										end
-									end
-								end
-							end
-							
-							if (turretProxyInventory.can_insert("uranium-rounds-magazine")) then
-								if (turretProxyInventory.get_item_count("uranium-rounds-magazine") == 0) then
-									if (wagonInventory.get_item_count("uranium-rounds-magazine") > 0) then
-										if (wagonInventory.get_item_count("uranium-rounds-magazine") < 10) then
-												turretProxyInventory.insert{name = "uranium-rounds-magazine", count = wagonInventory.get_item_count("uranium-rounds-magazine")}
-												wagonInventory.remove{name="uranium-rounds-magazine", count = wagonInventory.get_item_count("uranium-rounds-magazine")}
-										end	
-										
-										if (wagonInventory.get_item_count("uranium-rounds-magazine") >= 10) then
-											turretProxyInventory.insert{name = "uranium-rounds-magazine", count = neededAmmo}
-											wagonInventory.remove{name="uranium-rounds-magazine", count = neededAmmo}
-										end
-									end
-								end
-							end
-								
-								
-						end
-								
-								
-					--PUT AMMO TO CANNON
-					if createdPlatform.entity.name == "armored-wagon-cannon-mk1" then
-				
-				
-							--GET TURRET INVENTORY
-							local turretProxyInventory = createdPlatform.proxy.get_inventory(defines.inventory.turret_ammo)
-							--GET WAGON INVENTORY
-							local wagonInventory = createdPlatform.entity.get_inventory(defines.inventory.cargo_wagon)
-					
-					
-							local neededAmmo = 10;
-					
-					
-					
-					
-							if (turretProxyInventory.can_insert("platform-turret-cannon-ammo")) then
-								--If turret inventory == 0 (to prevent difficult unnecessary calculations
-								if (turretProxyInventory.get_item_count("platform-turret-cannon-ammo") == 0) then
-								--if we have in wagon
-									if (wagonInventory.get_item_count("cannon-shell") > 0) then
-										--If less thatn 10 calculate remaining
-										if (wagonInventory.get_item_count("cannon-shell") < 10) then
-												turretProxyInventory.insert{name = "platform-turret-cannon-ammo", count = wagonInventory.get_item_count("cannon-shell")}
-												wagonInventory.remove{name="cannon-shell", count = wagonInventory.get_item_count("cannon-shell")}
-										end	
-										--if greater thant 10 insert stack
-										if (wagonInventory.get_item_count("cannon-shell") >= 10) then
-											turretProxyInventory.insert{name = "platform-turret-cannon-ammo", count = neededAmmo}
-											wagonInventory.remove{name="cannon-shell", count = neededAmmo}
-										end
-									end
-								end
-							end
-					
-					
-						if (turretProxyInventory.can_insert("platform-turret-cannon-uranium-ammo")) then
-								--If turret inventory == 0 (to prevent difficult unnecessary calculations
-								if (turretProxyInventory.get_item_count("platform-turret-cannon-uranium-ammo") == 0) then
-								--if we have in wagon
-									if (wagonInventory.get_item_count("uranium-cannon-shell") > 0) then
-										--If less thatn 10 calculate remaining
-										if (wagonInventory.get_item_count("uranium-cannon-shell") < 10) then
-												turretProxyInventory.insert{name = "platform-turret-cannon-uranium-ammo", count = wagonInventory.get_item_count("uranium-cannon-shell")}
-												wagonInventory.remove{name="uranium-cannon-shell", count = wagonInventory.get_item_count("uranium-cannon-shell")}
-										end	
-										--if greater thant 10 insert stack
-										if (wagonInventory.get_item_count("uranium-cannon-shell") >= 10) then
-											turretProxyInventory.insert{name = "platform-turret-cannon-uranium-ammo", count = neededAmmo}
-											wagonInventory.remove{name="uranium-cannon-shell", count = neededAmmo}
-										end
-									end
-								end
-							end
-					end
-				
-				--PUT AMMO TO Rocket
-				if createdPlatform.entity.name == "armored-platform-rocket-mk1" then
-				
-				
 				--GET TURRET INVENTORY
-							local turretProxyInventory = createdPlatform.proxy.get_inventory(defines.inventory.turret_ammo)
-							--GET WAGON INVENTORY
-							local wagonInventory = createdPlatform.entity.get_inventory(defines.inventory.cargo_wagon)
-					
-					
-							local neededAmmo = 10;
-					
-					
-					
-					
-							if (turretProxyInventory.can_insert("rocket")) then
-								--If turret inventory == 0 (to prevent difficult unnecessary calculations
-								if (turretProxyInventory.get_item_count("rocket") == 0) then
-								--if we have in wagon
-									if (wagonInventory.get_item_count("rocket") > 0) then
-										--If less thatn 10 calculate remaining
-										if (wagonInventory.get_item_count("rocket") < 10) then
-												turretProxyInventory.insert{name = "rocket", count = wagonInventory.get_item_count("rocket")}
-												wagonInventory.remove{name="rocket", count = wagonInventory.get_item_count("rocket")}
-										end	
-										--if greater thant 10 insert stack
-										if (wagonInventory.get_item_count("rocket") >= 10) then
-											turretProxyInventory.insert{name = "rocket", count = neededAmmo}
-											wagonInventory.remove{name="rocket", count = neededAmmo}
-										end
-									end
-								end
-							end
+				local turretProxyInventory = createdPlatform.proxy.get_inventory(defines.inventory.turret_ammo)
+				--GET WAGON INVENTORY
+				local wagonInventory = createdPlatform.entity.get_inventory(defines.inventory.cargo_wagon)
 				
+				if createdPlatform.entity.name == "armored-platform-minigun-mk1" then
+					local neededAmmo = 10;
+					insertAmmunitionType(turretProxyInventory, wagonInventory, neededAmmo, "bullet")
 				
-				
+				elseif createdPlatform.entity.name == "armored-wagon-cannon-mk1" then
+					local neededAmmo = 2;
+					insertAmmunitionMap(turretProxyInventory, wagonInventory, neededAmmo, cannonMap)
+					
+				elseif createdPlatform.entity.name == "armored-platform-rocket-mk1" then
+					local neededAmmo = 2;
+					insertAmmunitionType(turretProxyInventory, wagonInventory, neededAmmo, "rocket")
+					
 				end
-				
-				
-				
-				
 				
 				--each ~ 3 sec do
 				if event.tick %20 == 3 then
@@ -335,10 +188,6 @@ function onTickMain(event)  -- Move each turret to follow its wagon
 							createdPlatform.proxy.health = platformMaxHealth;
 						end
 					end
-							
-							
-							
-							
 					
 				end
 			end
@@ -352,13 +201,13 @@ script.on_event(defines.events.on_tick, onTickMain)
 
 
 
+
+
 --ON REMOVED \/--
 --if removed /destroyed
 function entityRemoved(event)
 	--Is this know enity?
 	if isModEntity(event.entity) then
-	
-	
 	
 		local newFunction = function (val) 
 		
@@ -366,7 +215,6 @@ function entityRemoved(event)
 			
 			
 			end
-		
 		
 		
 		local wagon = getWagonFromEntity(global.turretPlatformList, event.entity)
@@ -377,8 +225,6 @@ function entityRemoved(event)
 		
 			if wagon.proxy ~= nil and wagon.proxy.valid then		-- or if isEntityValid(wagon.proxy) then
 				
-					
-					
 					wagon.proxy.destroy()
 					wagon.proxy = nil
 					
@@ -437,6 +283,8 @@ function entityDestroyed(event)
 	end
 end
 script.on_event(defines.events.on_entity_died, entityDestroyed)
+script.on_event(defines.events.script_raised_destroy, entityDestroyed)
+
 
 
 
@@ -473,8 +321,6 @@ function nilIfEmptyTable(value)
 		return value
 	end
 end
-
-
 
 function remove_if(func, arr)
   if arr == nil then return nil end
