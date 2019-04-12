@@ -37,7 +37,8 @@ function insertAmmunitionType(target, source, maxCount, ammoType)
 	for i=1,#source,1 do
 		local stack = source[i]
 		if stack and stack.valid_for_read then
-			if not ammoType or stack.prototype.get_ammo_type().category == ammoType then
+			stackAmmoType = stack.prototype.get_ammo_type()
+			if stackAmmoType and (not ammoType or stackAmmoType.category == ammoType) then
 				-- Attempt to insert this item
 				if target.can_insert(stack) then
 					local inserted = target.insert{name=stack.name,count=math.min(needed,stack.count)}

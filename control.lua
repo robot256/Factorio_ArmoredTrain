@@ -70,6 +70,7 @@ function entityBuilt(event)
 		global.turretPlatformList[createdEntity.unit_number] = createdPlatform
 		if createdEntity.speed ~= 0 then
 			global.movingPlatformList[createdEntity.unit_number] = createdPlatform
+			init_events()
 		end
 	end
 end
@@ -85,22 +86,24 @@ script.on_event(defines.events.script_raised_built, entityBuilt)
 function onTrainChangedState(event)
 	-- Check if a turret wagon started or stopped moving
 	if event.train.speed == 0 then
-		for _,wagon in pairs(event.train.rolling_stock) do
+		for _,wagon in pairs(event.train.carriages) do
 		-- Stopped moving.  Purge movingPlatformList
 			global.movingPlatformList[wagon.unit_number] = nil  -- Doesn't matter if it's not a mod entity
 		end
 	else
 		-- Started moving, add to movingPlatformList
-		for _,wagon in pairs(event.train.rolling_stock) do
+		for _,wagon in pairs(event.train.carriages) do
 			-- Add mod entities
 			if global.turretPlatformList[wagon.unit_number] then
 				global.movingPlatformList[wagon.unit_number] = global.turretPlatformList[wagon.unit_number]
 			end
 		end
 	end
+	
+	init_events()
 end
 
-script.on_event(defines.events.on_train_changed_stated, onTrainChangedState)
+script.on_event(defines.events.on_train_changed_state, onTrainChangedState)
 
 
 
@@ -118,60 +121,76 @@ function onTickMain(event)
 			platform.proxy.teleport{x = platform.entity.position.x, y = platform.entity.position.y}
 		end
 	end
-	
+
+end
+--ON TICK /\--
+
+
+function onNthTick(event)
+
 	--for each individual createdPlatform do
 	for id , platform in pairs(global.turretPlatformList) do
-		if platform.proxy ~= nil and platform.proxy.valid then
+		if platform.entity and platform.entity.valid and platform.proxy and platform.proxy.valid then
 			--each ~ 1/3 sec do
-			if event.tick %20 == i%20 then
-				--GET TURRET INVENTORY
-				local turretProxyInventory = platform.proxy.get_inventory(defines.inventory.turret_ammo)
-				--GET WAGON INVENTORY
-				local wagonInventory = platform.entity.get_inventory(defines.inventory.cargo_wagon)
-				
-				if platform.entity.name == "armored-platform-minigun-mk1" then
-					local neededAmmo = 10;
-					insertAmmunitionType(turretProxyInventory, wagonInventory, neededAmmo, "bullet")
-				
-				elseif platform.entity.name == "armored-wagon-cannon-mk1" then
-					local neededAmmo = 10;
-					insertAmmunitionMap(turretProxyInventory, wagonInventory, neededAmmo, cannonMap)
-					
-				elseif platform.entity.name == "armored-platform-rocket-mk1" then
-					local neededAmmo = 10;
-					insertAmmunitionType(turretProxyInventory, wagonInventory, neededAmmo, "rocket")
-					
-				end
-				
+			--GET TURRET INVENTORY
+			local turretProxyInventory = platform.proxy.get_inventory(defines.inventory.turret_ammo)
+			--GET WAGON INVENTORY
+			local wagonInventory = platform.entity.get_inventory(defines.inventory.cargo_wagon)
 			
-				--Taken damge to TURRET is applyed to WAGON
-				local damageTaken = platform.proxy.prototype.max_health - platform.proxy.health
-				--prevent nullpop
-				if (damageTaken > 0) then
-					local platformCurrentHealth = platform.entity.health;
-					--If health 0 destroy all
-					if (platformCurrentHealth <= damageTaken) then
-						platform.proxy.destroy();
-						platform.entity.die();
-					else
-						--subtract wagon health by given to turret damage
-						platform.entity.health = platformCurrentHealth - damageTaken;
-						--redefine proxy health back to full
-						platform.proxy.health = platform.proxy.prototype.max_health;
-					end
-				end
+			if platform.entity.name == "armored-platform-minigun-mk1" then
+				local neededAmmo = 10;
+				insertAmmunitionType(turretProxyInventory, wagonInventory, neededAmmo, "bullet")
+			
+			elseif platform.entity.name == "armored-wagon-cannon-mk1" then
+				local neededAmmo = 10;
+				insertAmmunitionMap(turretProxyInventory, wagonInventory, neededAmmo, cannonMap)
+				
+			elseif platform.entity.name == "armored-platform-rocket-mk1" then
+				local neededAmmo = 10;
+				insertAmmunitionType(turretProxyInventory, wagonInventory, neededAmmo, "rocket")
 				
 			end
+			
+		
+			--Taken damge to TURRET is applyed to WAGON
+			local damageTaken = platform.proxy.prototype.max_health - platform.proxy.health
+			--prevent nullpop
+			if (damageTaken > 0) then
+				local platformCurrentHealth = platform.entity.health;
+				--If health 0 destroy all
+				if (platformCurrentHealth <= damageTaken) then
+					platform.proxy.destroy();
+					platform.entity.die();
+				else
+					--subtract wagon health by given to turret damage
+					platform.entity.health = platformCurrentHealth - damageTaken;
+					--redefine proxy health back to full
+					platform.proxy.health = platform.proxy.prototype.max_health;
+				end
+			end
+				
 		else
 			-- Proxy was destroyed. Destroy this wagon
 			--remove from table
-			platform.entity.die();	
+			if platform.proxy ~= nil and platform.proxy.valid then
+				platform.proxy.destroy()
+			end
+			if platform.entity ~= nil and platform.entity.valid then
+				platform.entity.destroy()
+			end
+			--remove from table
+			global.turretPlatformList[id] = nil
+			global.movingPlatformList[id] = nil
+			init_events()
 		end
 	end
 
+
 end
-script.on_event(defines.events.on_tick, onTickMain)
---ON TICK /\--
+
+-- Update damage and ammo 2 times per second
+script.on_nth_tick(30,onNthTick)
+
 
 
 
@@ -186,11 +205,12 @@ function entityRemoved(event)
 		--if Wagon still there do:
 		if platform ~= nil then
 			if platform.proxy ~= nil and platform.proxy.valid then
-				wagon.proxy.destroy()
+				platform.proxy.destroy()
 			end
 			--remove from table
 			global.turretPlatformList[event.entity.unit_number] = nil
 			global.movingPlatformList[event.entity.unit_number] = nil
+			init_events()
 		end
 	end
 end
@@ -198,9 +218,6 @@ script.on_event(defines.events.on_pre_player_mined_item, entityRemoved)
 script.on_event(defines.events.on_robot_pre_mined, entityRemoved)
 script.on_event(defines.events.script_raised_destroy, entityRemoved)
 --ON REMOVED /\--
-
-
-
 
 
 function entityDestroyed(event)
@@ -213,29 +230,41 @@ function entityDestroyed(event)
 		if platform ~= nil then
 			if platform.proxy ~= nil and platform.proxy.valid then
 				-- Add explosion?
-				wagon.proxy.destroy()
+				platform.proxy.destroy()
 			end
 			--remove from table
 			global.turretPlatformList[event.entity.unit_number] = nil
 			global.movingPlatformList[event.entity.unit_number] = nil
+			init_events()
 		end
 	end
 end
 script.on_event(defines.events.on_entity_died, entityDestroyed)
 
 
+function init_events()
+	-- Subscribe to events based on global variables
+	if next(global.movingPlatformList) then
+		script.on_event(defines.events.on_tick, onTickMain)
+	else
+		script.on_event(defines.events.on_tick, nil)
+	end
+end
+
+
+
 
 script.on_load(
 function(event)
 
-	
+	init_events()
 end)
 
 script.on_init(function()
 	--Create table "turretPlatformList" and store data (if null create else just pass data)
 	global.turretPlatformList = {}
 	global.movingPlatformList = {}
-
+	init_events()
 end)
 
 script.on_configuration_changed(function()
@@ -243,4 +272,7 @@ script.on_configuration_changed(function()
 	global.turretPlatformList = global.turretPlatformList or {}
 	global.movingPlatformList = global.movingPlatformList or {}
 
+	-- Probably need to rebuild these tables since we might be migrating from the old array-based system
+	init_events()
 end)
+
