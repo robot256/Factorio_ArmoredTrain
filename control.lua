@@ -113,17 +113,15 @@ function updateTurret(platform)
 		local turretProxyInventory = platform.proxy.get_inventory(defines.inventory.turret_ammo)
 		--GET WAGON INVENTORY
 		local wagonInventory = platform.entity.get_inventory(defines.inventory.cargo_wagon)
+		local neededAmmo = platform.proxy.automated_ammo_count
 		
 		if platform.entity.name == "armored-platform-minigun-mk1" then
-			local neededAmmo = 10;
 			insertAmmunitionType(turretProxyInventory, wagonInventory, neededAmmo, "bullet")
 		
 		elseif platform.entity.name == "armored-wagon-cannon-mk1" then
-			local neededAmmo = 10;
 			insertAmmunitionMap(turretProxyInventory, wagonInventory, neededAmmo, cannonMap)
 			
 		elseif platform.entity.name == "armored-platform-rocket-mk1" then
-			local neededAmmo = 10;
 			insertAmmunitionType(turretProxyInventory, wagonInventory, neededAmmo, "rocket")
 			
 		end
