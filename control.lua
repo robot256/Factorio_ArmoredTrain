@@ -242,15 +242,39 @@ end
 script.on_event(defines.events.on_entity_died, entityDestroyed)
 
 
+-- Scrub the list for miscataloged platform/proxy entries
+function rebuildPlatformList()
+	if global.turretPlatformList then
+		-- Clear moving list, and rebuild it
+		global.movingPlatformList = {}
+		local newPlatformList = {}
+		local needToRebuild = false
+		for id,platform in pairs(global.turretPlatformList) do
+			if id ~= platform.entity.unit_number then
+				needToRebuild = true
+				break
+			end
+		end
+		for _,platform in pairs(global.turretPlatformList) do
+			newPlatformList[platform.entity.unit_number] = platform
+			if platform.entity.speed ~= 0 then
+				global.movingPlatformList[platform.entity.unit_number] = platform
+			end
+		end
+		global.turretPlatformList = newPlatformList
+	end
+end
+
+
+
 function init_events()
 	-- Subscribe to events based on global variables
-	if next(global.movingPlatformList) then
+	if global.movingPlatformList and next(global.movingPlatformList) then
 		script.on_event(defines.events.on_tick, onTickMain)
 	else
 		script.on_event(defines.events.on_tick, nil)
 	end
 end
-
 
 
 
@@ -273,6 +297,8 @@ script.on_configuration_changed(function()
 	global.movingPlatformList = global.movingPlatformList or {}
 
 	-- Probably need to rebuild these tables since we might be migrating from the old array-based system
+	rebuildPlatformList()
+	
 	init_events()
 end)
 
