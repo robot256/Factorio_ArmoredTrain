@@ -107,6 +107,63 @@ script.on_event(defines.events.on_train_changed_state, onTrainChangedState)
 
 
 
+function updateTurret(platform)
+	if not platform then return end
+	if platform.entity and platform.entity.valid and platform.proxy and platform.proxy.valid then
+		--each ~ 1/3 sec do
+		--GET TURRET INVENTORY
+		local turretProxyInventory = platform.proxy.get_inventory(defines.inventory.turret_ammo)
+		--GET WAGON INVENTORY
+		local wagonInventory = platform.entity.get_inventory(defines.inventory.cargo_wagon)
+		
+		if platform.entity.name == "armored-platform-minigun-mk1" then
+			local neededAmmo = 10;
+			insertAmmunitionType(turretProxyInventory, wagonInventory, neededAmmo, "bullet")
+		
+		elseif platform.entity.name == "armored-wagon-cannon-mk1" then
+			local neededAmmo = 10;
+			insertAmmunitionMap(turretProxyInventory, wagonInventory, neededAmmo, cannonMap)
+			
+		elseif platform.entity.name == "armored-platform-rocket-mk1" then
+			local neededAmmo = 10;
+			insertAmmunitionType(turretProxyInventory, wagonInventory, neededAmmo, "rocket")
+			
+		end
+		
+	
+		--Taken damge to TURRET is applyed to WAGON
+		local damageTaken = platform.proxy.prototype.max_health - platform.proxy.health
+		--prevent nullpop
+		if (damageTaken > 0) then
+			local platformCurrentHealth = platform.entity.health;
+			--If health 0 destroy all
+			if (platformCurrentHealth <= damageTaken) then
+				platform.proxy.destroy();
+				platform.entity.die();
+			else
+				--subtract wagon health by given to turret damage
+				platform.entity.health = platformCurrentHealth - damageTaken;
+				--redefine proxy health back to full
+				platform.proxy.health = platform.proxy.prototype.max_health;
+			end
+		end
+			
+	else
+		-- Proxy was destroyed. Destroy this wagon
+		--remove from table
+		if platform.proxy ~= nil and platform.proxy.valid then
+			platform.proxy.destroy()
+		end
+		if platform.entity ~= nil and platform.entity.valid then
+			platform.entity.destroy()
+		end
+		--remove from table
+		global.turretPlatformList[platform.entity.unit_number] = nil
+		global.movingPlatformList[platform.entity.unit_number] = nil
+		init_events()
+	end
+		
+end
 
 
 
@@ -121,6 +178,16 @@ function onTickMain(event)
 			platform.proxy.teleport{x = platform.entity.position.x, y = platform.entity.position.y}
 		end
 	end
+	
+	-- Update ammo and damage for a certain number of turrets each tick (default 10)
+	local i = 0
+	while next(global.turretsToUpdate) and i < 10 do
+		updateTurret(table.remove(global.turretsToUpdate,1))
+		i = i + 1
+	end
+	
+	-- Update state of on_tick based on global queues
+	init_events()
 
 end
 --ON TICK /\--
@@ -128,64 +195,14 @@ end
 
 function onNthTick(event)
 
-	--for each individual createdPlatform do
-	for id , platform in pairs(global.turretPlatformList) do
-		if platform.entity and platform.entity.valid and platform.proxy and platform.proxy.valid then
-			--each ~ 1/3 sec do
-			--GET TURRET INVENTORY
-			local turretProxyInventory = platform.proxy.get_inventory(defines.inventory.turret_ammo)
-			--GET WAGON INVENTORY
-			local wagonInventory = platform.entity.get_inventory(defines.inventory.cargo_wagon)
-			
-			if platform.entity.name == "armored-platform-minigun-mk1" then
-				local neededAmmo = 10;
-				insertAmmunitionType(turretProxyInventory, wagonInventory, neededAmmo, "bullet")
-			
-			elseif platform.entity.name == "armored-wagon-cannon-mk1" then
-				local neededAmmo = 10;
-				insertAmmunitionMap(turretProxyInventory, wagonInventory, neededAmmo, cannonMap)
-				
-			elseif platform.entity.name == "armored-platform-rocket-mk1" then
-				local neededAmmo = 10;
-				insertAmmunitionType(turretProxyInventory, wagonInventory, neededAmmo, "rocket")
-				
+	if not next(global.turretsToUpdate) then
+		for id , platform in pairs(global.turretPlatformList) do
+			if platform.entity and platform.entity.valid and platform.proxy and platform.proxy.valid then
+				table.insert(global.turretsToUpdate, platform)
 			end
-			
-		
-			--Taken damge to TURRET is applyed to WAGON
-			local damageTaken = platform.proxy.prototype.max_health - platform.proxy.health
-			--prevent nullpop
-			if (damageTaken > 0) then
-				local platformCurrentHealth = platform.entity.health;
-				--If health 0 destroy all
-				if (platformCurrentHealth <= damageTaken) then
-					platform.proxy.destroy();
-					platform.entity.die();
-				else
-					--subtract wagon health by given to turret damage
-					platform.entity.health = platformCurrentHealth - damageTaken;
-					--redefine proxy health back to full
-					platform.proxy.health = platform.proxy.prototype.max_health;
-				end
-			end
-				
-		else
-			-- Proxy was destroyed. Destroy this wagon
-			--remove from table
-			if platform.proxy ~= nil and platform.proxy.valid then
-				platform.proxy.destroy()
-			end
-			if platform.entity ~= nil and platform.entity.valid then
-				platform.entity.destroy()
-			end
-			--remove from table
-			global.turretPlatformList[id] = nil
-			global.movingPlatformList[id] = nil
-			init_events()
 		end
 	end
-
-
+	init_events()
 end
 
 -- Update damage and ammo 2 times per second
@@ -269,7 +286,8 @@ end
 
 function init_events()
 	-- Subscribe to events based on global variables
-	if global.movingPlatformList and next(global.movingPlatformList) then
+	if (global.movingPlatformList and next(global.movingPlatformList)) or
+		(global.turretsToUpdate and next(global.turretsToUpdate)) then
 		script.on_event(defines.events.on_tick, onTickMain)
 	else
 		script.on_event(defines.events.on_tick, nil)
@@ -288,6 +306,7 @@ script.on_init(function()
 	--Create table "turretPlatformList" and store data (if null create else just pass data)
 	global.turretPlatformList = {}
 	global.movingPlatformList = {}
+	global.turretsToUpdate = {}
 	init_events()
 end)
 
@@ -295,7 +314,7 @@ script.on_configuration_changed(function()
 	--Create table "turretPlatformList" and store data (if null create else just pass data)
 	global.turretPlatformList = global.turretPlatformList or {}
 	global.movingPlatformList = global.movingPlatformList or {}
-
+	global.turretsToUpdate = global.turretsToUpdate or {}
 	-- Probably need to rebuild these tables since we might be migrating from the old array-based system
 	rebuildPlatformList()
 	
