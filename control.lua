@@ -29,7 +29,6 @@ end
 -------------
 
 
-
 --ON BUILT \/--
 function entityBuilt(event)
 	--createdEntity reference (to simplify usage in this context)
@@ -104,7 +103,6 @@ function onTrainChangedState(event)
 end
 
 script.on_event(defines.events.on_train_changed_state, onTrainChangedState)
-
 
 
 function updateTurret(platform)
@@ -211,6 +209,8 @@ script.on_nth_tick(30,onNthTick)
 
 
 
+
+
 --ON REMOVED \/--
 --if removed /destroyed
 function entityRemoved(event)
@@ -257,6 +257,8 @@ function entityDestroyed(event)
 	end
 end
 script.on_event(defines.events.on_entity_died, entityDestroyed)
+script.on_event(defines.events.script_raised_destroy, entityDestroyed)
+
 
 
 -- Scrub the list for miscataloged platform/proxy entries
@@ -320,4 +322,3 @@ script.on_configuration_changed(function()
 	
 	init_events()
 end)
-
